@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # EqualPay Application Server
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: equalpay_app
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=postgresql://equalpay_user:secure_password_2026@postgres:5432/equalpay_db?schema=public
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=equalpay_production_jwt_secret_key_8492
+      - EXCHANGE_RATE_API_KEY=YOUR_EXCHANGE_RATE_API_KEY
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - equalpay_net
+
+  # PostgreSQL Relational Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: equalpay_postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=equalpay_user
+      - POSTGRES_PASSWORD=secure_password_2026
+      - POSTGRES_DB=equalpay_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./prisma/migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U equalpay_user -d equalpay_db']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - equalpay_net
+
+  # Redis Cache & Background Rate Store
+  redis:
+    image: redis:7-alpine
+    container_name: equalpay_redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    networks:
+      - equalpay_net
+
+networks:
+  equalpay_net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:

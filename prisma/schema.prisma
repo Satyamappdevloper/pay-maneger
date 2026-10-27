@@ -1,0 +1,229 @@
+// Prisma Schema for EqualPay: Cross-Platform Smart Debt & Group Expense Manager
+// Datasource: PostgreSQL / Supabase
+// Documentation: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SplitType {
+  EQUAL
+  PERCENTAGE
+  EXACT_AMOUNT
+  SHARES
+  ITEMIZED
+}
+
+enum GroupCategory {
+  Trip
+  Home
+  Flat_Rent @map("Flat/Rent")
+  Event
+  Office
+  Other
+}
+
+enum SettlementMethod {
+  UPI
+  PayPal
+  Stripe
+  Venmo
+  Cash
+  BankTransfer @map("Bank Transfer")
+}
+
+enum SyncOperation {
+  CREATE_EXPENSE
+  UPDATE_EXPENSE
+  DELETE_EXPENSE
+  CREATE_GROUP
+  UPDATE_GROUP
+  SETTLE_DEBT
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  phone        String   @unique
+  email        String   @unique
+  baseCurrency String   @default("USD")
+  avatarUrl    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relationships
+  memberships        GroupMembership[]
+  expensesPaid       Expense[]           @relation("ExpensePayer")
+  expenseSplits      ExpenseSplit[]
+  settlementsSent    Settlement[]        @relation("SettlementSender")
+  settlementsReceived Settlement[]       @relation("SettlementRecipient")
+  notificationPrefs  NotificationPreference?
+  syncAuditLogs      SyncAuditLog[]
+
+  @@index([email])
+  @@index([phone])
+  @@map("users")
+}
+
+model NotificationPreference {
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  whatsappEnabled  Boolean  @default(true)
+  smsEnabled       Boolean  @default(false)
+  pushEnabled      Boolean  @default(true)
+  emailDigest      Boolean  @default(true)
+  reminderFrequency String  @default("weekly") // daily, weekly, never
+
+  @@map("notification_preferences")
+}
+
+model Group {
+  id              String        @id @default(uuid())
+  name            String
+  category        GroupCategory @default(Trip)
+  defaultCurrency String        @default("USD")
+  description     String?
+  avatarUrl       String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relationships
+  memberships GroupMembership[]
+  expenses    Expense[]
+  settlements Settlement[]
+
+  @@map("groups")
+}
+
+model GroupMembership {
+  id        String   @id @default(uuid())
+  groupId   String
+  userId    String
+  role      String   @default("MEMBER") // ADMIN, MEMBER
+  joinedAt  DateTime @default(now())
+
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([groupId])
+  @@index([userId])
+  @@map("group_memberships")
+}
+
+model Expense {
+  id           String       @id @default(uuid())
+  groupId      String
+  title        String
+  totalAmount  Decimal      @db.Decimal(12, 2)
+  currency     String       @default("USD")
+  paidByUserId String
+  splitType    SplitType    @default(EQUAL)
+  category     String       @default("Dining")
+  receiptUrl   String?
+  notes        String?
+  date         DateTime     @default(now())
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  // Relationships
+  group        Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  paidBy       User         @relation("ExpensePayer", fields: [paidByUserId], references: [id], onDelete: Restrict)
+  splits       ExpenseSplit[]
+  itemizedItems ItemizedItem[]
+
+  @@index([groupId])
+  @@index([paidByUserId])
+  @@index([date])
+  @@map("expenses")
+}
+
+model ExpenseSplit {
+  id         String   @id @default(uuid())
+  expenseId  String
+  userId     String
+  amount     Decimal  @db.Decimal(12, 2)
+  percentage Decimal? @db.Decimal(5, 2)
+  shares     Int?
+
+  expense    Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([expenseId, userId])
+  @@index([expenseId])
+  @@index([userId])
+  @@map("expense_splits")
+}
+
+model ItemizedItem {
+  id               String   @id @default(uuid())
+  expenseId        String
+  name             String
+  amount           Decimal  @db.Decimal(12, 2)
+  assignedUserIds  String[] // Array of user IDs splitting this item
+
+  expense          Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+
+  @@index([expenseId])
+  @@map("itemized_items")
+}
+
+model Settlement {
+  id         String           @id @default(uuid())
+  groupId    String?
+  fromUserId String
+  toUserId   String
+  amount     Decimal          @db.Decimal(12, 2)
+  currency   String           @default("USD")
+  method     SettlementMethod @default(UPI)
+  date       DateTime         @default(now())
+  note       String?
+  createdAt  DateTime         @default(now())
+
+  group      Group?           @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  fromUser   User             @relation("SettlementSender", fields: [fromUserId], references: [id], onDelete: Restrict)
+  toUser     User             @relation("SettlementRecipient", fields: [toUserId], references: [id], onDelete: Restrict)
+
+  @@index([groupId])
+  @@index([fromUserId])
+  @@index([toUserId])
+  @@map("settlements")
+}
+
+model CurrencyRate {
+  id           String   @id @default(uuid())
+  baseCurrency String   // e.g. USD
+  targetCode   String   // e.g. EUR, INR, JPY, GBP
+  rate         Decimal  @db.Decimal(18, 6)
+  source       String   @default("OpenExchangeRates") // ExchangeRate-API, OfflineFallback
+  fetchedAt    DateTime @default(now())
+
+  @@unique([baseCurrency, targetCode])
+  @@index([baseCurrency])
+  @@map("currency_rates")
+}
+
+model SyncAuditLog {
+  id           String        @id @default(uuid())
+  clientSyncId String        @unique // Client idempotency key
+  userId       String
+  entityType   String        // expense, group, settlement
+  entityId     String
+  operation    SyncOperation
+  clientTime   DateTime
+  serverTime   DateTime      @default(now())
+  deviceOrigin String        @default("web") // web, android, ios
+  status       String        @default("APPLIED") // APPLIED, CONFLICT_LWW_OVERRIDDEN, REJECTED
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([entityId])
+  @@map("sync_audit_logs")
+}
