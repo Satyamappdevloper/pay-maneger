@@ -20,7 +20,7 @@ export const apiRouter = Router();
 apiRouter.get('/health', (_req: Request, res: Response) => {
   res.json({
     status: 'healthy',
-    service: 'EqualPay Backend Engine',
+    service: 'Pay Manager Backend Engine',
     version: '1.1.0-free-tier',
     timestamp: new Date().toISOString(),
     database: 'local-persistent-store',
@@ -69,7 +69,7 @@ apiRouter.post('/auth/login', (req: Request, res: Response) => {
     db.saveUser(user);
   }
 
-  // Fallback to primary test user (Alex Rivera) if empty
+  // Fallback to primary test user (Satyam) if empty
   if (!user) {
     user = db.getAllUsers()[0];
   }
@@ -434,7 +434,7 @@ apiRouter.post('/reminders/send', (req: Request, res: Response) => {
   const creditor = creditorUserId ? db.getUserById(creditorUserId) : db.getAllUsers()[0];
 
   const cleanPhone = debtor?.phone ? debtor.phone.replace(/\D/g, '') : '';
-  const messageText = `Hi ${debtor?.name || 'friend'}! Friendly settlement reminder for our group expense on EqualPay: ${currency} ${amount} to ${creditor?.name}. Settle up: https://equalpay.dev/settle?to=${creditor?.id}`;
+  const messageText = `Hi ${debtor?.name || 'friend'}! Friendly settlement reminder for our group expense on Pay Manager: ${currency} ${amount} to ${creditor?.name}. Settle up: https://paymanager.app/settle?to=${creditor?.id}`;
 
   const encodedMsg = encodeURIComponent(messageText);
 

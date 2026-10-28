@@ -53,7 +53,7 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
   const [paymentMethod, setPaymentMethod] = useState<
     'UPI' | 'PayPal' | 'Stripe' | 'Venmo' | 'Cash' | 'Bank Transfer'
   >('UPI');
-  const [note, setNote] = useState<string>('EqualPay Debt Settlement');
+  const [note, setNote] = useState<string>('Pay Manager Debt Settlement');
   const [showQR, setShowQR] = useState<boolean>(false);
 
   // Auto-calculate suggested debt between chosen payer and payee
@@ -72,6 +72,35 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
   const payee = users.find((u) => u.id === payeeId);
 
   if (!isOpen) return null;
+
+  if (users.length <= 1) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-in fade-in">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md p-6 text-center space-y-4 shadow-2xl">
+          <div className="w-14 h-14 rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center mx-auto text-2xl shadow-xs">
+            <CheckCircle2 className="w-7 h-7" />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">
+              All Settled Even!
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
+              No debts found to settle. Add friends and members to your groups and record shared expenses to track balances and settle up here.
+            </p>
+          </div>
+          <div className="pt-2 flex justify-center">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-5 py-2 text-xs font-bold rounded-xl bg-teal-600 hover:bg-teal-700 text-white shadow-md transition-all cursor-pointer"
+            >
+              Got It
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -281,7 +310,7 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               <a
                 href={`https://wa.me/?text=${encodeURIComponent(
-                  `Hi ${payee?.name}! I'm sending a settlement payment of ${currency} ${amount} on EqualPay: https://equalpay.dev/settle?to=${payee?.id}`
+                  `Hi ${payee?.name}! I'm sending a settlement payment of ${currency} ${amount} on Pay Manager: https://paymanager.app/settle?to=${payee?.id}`
                 )}`}
                 target="_blank"
                 rel="noreferrer"
@@ -292,7 +321,7 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
               </a>
 
               <a
-                href={`upi://pay?pa=equalpay.${payeeId}@bank&pn=${encodeURIComponent(
+                href={`upi://pay?pa=paymanager.${payeeId}@bank&pn=${encodeURIComponent(
                   payee?.name || ''
                 )}&am=${amount}&cu=${currency}`}
                 onClick={(e) => {

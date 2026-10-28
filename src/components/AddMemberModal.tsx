@@ -20,6 +20,7 @@ import {
   Users,
 } from 'lucide-react';
 import { Group, User } from '../models/types.ts';
+import { UserAvatar } from './UserAvatar.tsx';
 
 interface AddMemberModalProps {
   isOpen: boolean;
@@ -170,9 +171,9 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
                     className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-between"
                   >
                     <div className="flex items-center gap-2.5">
-                      <img
+                      <UserAvatar
                         src={contact.avatarUrl}
-                        alt={contact.name}
+                        name={contact.name}
                         className="w-8 h-8 rounded-full object-cover border border-slate-200 dark:border-slate-700"
                       />
                       <div>

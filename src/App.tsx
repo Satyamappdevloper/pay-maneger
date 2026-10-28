@@ -13,7 +13,7 @@ import {
   Users,
   History,
   PieChart,
-  Cpu,
+  FileText,
   Plus,
   CheckCircle2,
   Moon,
@@ -25,6 +25,7 @@ import {
   Layers,
   Sparkles,
   Zap,
+  Edit3,
 } from 'lucide-react';
 
 import { EqualPayProvider, useEqualPay, NavigationTab } from './context/EqualPayContext.tsx';
@@ -36,17 +37,13 @@ import { DashboardScreen } from './screens/DashboardScreen.tsx';
 import { GroupsScreen } from './screens/GroupsScreen.tsx';
 import { ActivityScreen } from './screens/ActivityScreen.tsx';
 import { AnalyticsScreen } from './screens/AnalyticsScreen.tsx';
+import { TermsScreen } from './screens/TermsScreen.tsx';
 
-// Modals & Engines
+// Modals
 import { AddExpenseModal } from './components/AddExpenseModal.tsx';
 import { SettleUpModal } from './components/SettleUpModal.tsx';
-import { DebtGraphVisualizer } from './components/DebtGraphVisualizer.tsx';
-import { SplitCalculatorStudio } from './components/SplitCalculatorStudio.tsx';
-import { CurrencyEnginePlayground } from './components/CurrencyEnginePlayground.tsx';
-import { OfflineSyncInspector } from './components/OfflineSyncInspector.tsx';
-import { TestRunnerView } from './components/TestRunnerView.tsx';
-import { BackendConsole } from './components/BackendConsole.tsx';
-import { OFFLINE_FALLBACK_RATES } from './engines/currency.ts';
+import { EditProfileModal } from './components/EditProfileModal.tsx';
+import { UserAvatar } from './components/UserAvatar.tsx';
 
 function EqualPayAppContent() {
   const {
@@ -68,6 +65,7 @@ function EqualPayAppContent() {
     pendingSyncCount,
     addExpense,
     recordSettlement,
+    updateProfile,
     toasts,
     showToast,
     dismissToast,
@@ -76,12 +74,9 @@ function EqualPayAppContent() {
   // Modals state
   const [isAddExpenseOpen, setIsAddExpenseOpen] = useState(false);
   const [isSettleUpOpen, setIsSettleUpOpen] = useState(false);
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [settleDebtPreset, setSettleDebtPreset] = useState<Debt | undefined>(undefined);
 
-  // Sub-tabs when on the 'engines' tab
-  const [engineSubTab, setEngineSubTab] = useState<
-    'graph' | 'splits' | 'currency' | 'sync' | 'tests' | 'backend'
-  >('backend');
 
   const handleOpenSettleWithDebt = (debt: Debt) => {
     setSettleDebtPreset(debt);
@@ -128,7 +123,7 @@ function EqualPayAppContent() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-base font-black tracking-tight text-slate-900 dark:text-white">
-                  EqualPay
+                  Pay Manager
                 </span>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-700 dark:text-teal-400 font-bold border border-teal-500/20">
                   Global
@@ -198,13 +193,37 @@ function EqualPayAppContent() {
               {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-700" />}
             </button>
 
-            {/* User Profile / Persona Switcher */}
+            {/* Terms & Conditions Header Quick Link */}
+            <button
+              onClick={() => setActiveTab('terms')}
+              className={`p-2 rounded-xl border transition-colors flex items-center gap-1.5 text-xs font-bold ${
+                activeTab === 'terms'
+                  ? 'bg-teal-600 text-white border-teal-500 shadow-xs'
+                  : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+              }`}
+              title="Terms & Conditions and Privacy Policy"
+            >
+              <FileText className="w-4 h-4" />
+              <span className="hidden lg:inline text-[11px]">Terms</span>
+            </button>
+
+            {/* User Profile / Persona Switcher & Customizer */}
             <div className="flex items-center gap-1.5 pl-1 border-l border-slate-200 dark:border-slate-800">
-              <img
-                src={currentUser.avatarUrl}
-                alt={currentUser.name}
-                className="w-8 h-8 rounded-full object-cover border-2 border-teal-600/30"
-              />
+              <button
+                type="button"
+                onClick={() => setIsEditProfileOpen(true)}
+                className="relative group cursor-pointer focus:outline-none"
+                title="Click to customize your profile"
+              >
+                <UserAvatar
+                  src={currentUser.avatarUrl}
+                  name={currentUser.name}
+                  className="w-8 h-8 rounded-full object-cover border-2 border-teal-600/30 group-hover:border-teal-500 transition-colors"
+                />
+                <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-teal-600 text-white rounded-full flex items-center justify-center text-[8px] font-bold shadow-xs">
+                  ✎
+                </span>
+              </button>
               <select
                 value={currentUser.id}
                 onChange={(e) => {
@@ -214,7 +233,7 @@ function EqualPayAppContent() {
                     showToast(`Switched active persona to ${u.name}`);
                   }
                 }}
-                className="bg-transparent text-xs font-bold text-slate-900 dark:text-white cursor-pointer focus:outline-none max-w-[90px] sm:max-w-[130px] truncate"
+                className="bg-transparent text-xs font-bold text-slate-900 dark:text-white cursor-pointer focus:outline-none max-w-[85px] sm:max-w-[130px] truncate"
                 title="Switch active user persona"
               >
                 {users.map((u) => (
@@ -223,6 +242,14 @@ function EqualPayAppContent() {
                   </option>
                 ))}
               </select>
+              <button
+                type="button"
+                onClick={() => setIsEditProfileOpen(true)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                title="Edit profile name & preferences"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
         </div>
@@ -283,15 +310,15 @@ function EqualPayAppContent() {
 
             <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
               <button
-                onClick={() => setActiveTab('engines')}
+                onClick={() => setActiveTab('terms')}
                 className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left ${
-                  activeTab === 'engines'
-                    ? 'bg-sky-600 text-white shadow-sm'
+                  activeTab === 'terms'
+                    ? 'bg-teal-600 text-white shadow-sm'
                     : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
-                <Cpu className="w-4 h-4" />
-                <span>Engine Lab & Tests</span>
+                <FileText className="w-4 h-4" />
+                <span>Terms & Conditions</span>
               </button>
             </div>
           </div>
@@ -327,6 +354,7 @@ function EqualPayAppContent() {
                 setCurrentGroupId(gId);
                 setActiveTab('groups');
               }}
+              onOpenCreateGroup={() => setActiveTab('groups')}
             />
           )}
 
@@ -344,98 +372,8 @@ function EqualPayAppContent() {
           {/* Tab 4: Analytics */}
           {activeTab === 'analytics' && <AnalyticsScreen />}
 
-          {/* Tab 5: Engine Lab & Mathematical Verification Test Suite */}
-          {activeTab === 'engines' && (
-            <div className="space-y-6">
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 flex flex-wrap gap-2 text-xs font-bold">
-                <button
-                  onClick={() => setEngineSubTab('graph')}
-                  className={`px-3 py-1.5 rounded-xl transition-all ${
-                    engineSubTab === 'graph'
-                      ? 'bg-teal-600 text-white'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  ⚡ Graph Simplifier
-                </button>
-                <button
-                  onClick={() => setEngineSubTab('splits')}
-                  className={`px-3 py-1.5 rounded-xl transition-all ${
-                    engineSubTab === 'splits'
-                      ? 'bg-teal-600 text-white'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  🪙 Split Calculator
-                </button>
-                <button
-                  onClick={() => setEngineSubTab('currency')}
-                  className={`px-3 py-1.5 rounded-xl transition-all ${
-                    engineSubTab === 'currency'
-                      ? 'bg-teal-600 text-white'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  🌐 Multi-Currency
-                </button>
-                <button
-                  onClick={() => setEngineSubTab('sync')}
-                  className={`px-3 py-1.5 rounded-xl transition-all ${
-                    engineSubTab === 'sync'
-                      ? 'bg-teal-600 text-white'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  📦 Offline Queue Simulator
-                </button>
-                <button
-                  onClick={() => setEngineSubTab('backend')}
-                  className={`px-3 py-1.5 rounded-xl transition-all ${
-                    engineSubTab === 'backend'
-                      ? 'bg-teal-600 text-white'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  🚀 Live Backend & APIs
-                </button>
-                <button
-                  onClick={() => setEngineSubTab('tests')}
-                  className={`px-3 py-1.5 rounded-xl transition-all ${
-                    engineSubTab === 'tests'
-                      ? 'bg-teal-600 text-white'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  🧪 Verification Test Suite
-                </button>
-              </div>
-
-              {engineSubTab === 'backend' && <BackendConsole />}
-
-              {engineSubTab === 'graph' && (
-                <DebtGraphVisualizer
-                  expenses={expenses}
-                  users={groups[0]?.members || users}
-                  baseCurrency={globalCurrency}
-                  exchangeRates={OFFLINE_FALLBACK_RATES}
-                  onSettleDebt={handleOpenSettleWithDebt}
-                />
-              )}
-
-              {engineSubTab === 'splits' && (
-                <SplitCalculatorStudio
-                  users={users}
-                  defaultCurrency={globalCurrency}
-                />
-              )}
-
-              {engineSubTab === 'currency' && <CurrencyEnginePlayground />}
-
-              {engineSubTab === 'sync' && <OfflineSyncInspector />}
-
-              {engineSubTab === 'tests' && <TestRunnerView />}
-            </div>
-          )}
+          {/* Tab 5: Terms & Conditions & Privacy */}
+          {activeTab === 'terms' && <TermsScreen />}
         </main>
       </div>
 
@@ -496,6 +434,18 @@ function EqualPayAppContent() {
           <PieChart className="w-5 h-5" />
           <span>Analytics</span>
         </button>
+
+        <button
+          onClick={() => setActiveTab('terms')}
+          className={`flex flex-col items-center gap-1 p-1 text-[10px] font-bold ${
+            activeTab === 'terms'
+              ? 'text-teal-600 dark:text-teal-400'
+              : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+          }`}
+        >
+          <FileText className="w-5 h-5" />
+          <span>Terms</span>
+        </button>
       </nav>
 
       {/* MODALS */}
@@ -507,6 +457,7 @@ function EqualPayAppContent() {
         users={users}
         defaultCurrency={globalCurrency}
         onSaveExpense={addExpense}
+        onCreateGroupRequest={() => setActiveTab('groups')}
       />
 
       <SettleUpModal
@@ -518,6 +469,13 @@ function EqualPayAppContent() {
         defaultPayeeId={settleDebtPreset?.toUserId}
         globalCurrency={globalCurrency}
         onConfirmSettlement={recordSettlement}
+      />
+
+      <EditProfileModal
+        isOpen={isEditProfileOpen}
+        onClose={() => setIsEditProfileOpen(false)}
+        currentUser={currentUser}
+        onSave={updateProfile}
       />
     </div>
   );

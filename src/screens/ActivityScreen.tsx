@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useEqualPay } from '../context/EqualPayContext.tsx';
 import { formatCurrency, convertCurrency, OFFLINE_FALLBACK_RATES } from '../engines/currency.ts';
+import { UserAvatar } from '../components/UserAvatar.tsx';
 
 export const ActivityScreen: React.FC = () => {
   const { expenses, settlements, groups, users, globalCurrency } = useEqualPay();
@@ -230,7 +231,7 @@ export const ActivityScreen: React.FC = () => {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `EqualPay_Activity_${Date.now()}.csv`);
+    link.setAttribute('download', `PayManager_Activity_${Date.now()}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -347,7 +348,7 @@ export const ActivityScreen: React.FC = () => {
                     : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300'
                 }`}
               >
-                <img src={u.avatarUrl} alt={u.name} className="w-3 h-3 rounded-full object-cover" />
+                <UserAvatar src={u.avatarUrl} name={u.name} className="w-3.5 h-3.5 rounded-full object-cover" />
                 <span>{u.name.split(' ')[0]}</span>
               </button>
             );
@@ -432,7 +433,21 @@ export const ActivityScreen: React.FC = () => {
 
       {/* Timeline List */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs transition-colors space-y-3">
-        {filteredItems.length === 0 ? (
+        {activityItems.length === 0 ? (
+          <div className="py-14 text-center space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center mx-auto">
+              <History className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                No Activity Logged Yet
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto leading-relaxed">
+                As you create groups and record expenses, a verified chronological audit trail of all transactions and settlements will appear here.
+              </p>
+            </div>
+          </div>
+        ) : filteredItems.length === 0 ? (
           <div className="py-14 text-center space-y-3">
             <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
               <Search className="w-6 h-6 opacity-60" />
@@ -443,12 +458,12 @@ export const ActivityScreen: React.FC = () => {
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto">
                 No transactions matched &ldquo;<span className="font-semibold text-slate-700 dark:text-slate-300">{search}</span>&rdquo;.
-                Try searching by a member&apos;s name (e.g. &ldquo;Sarah&rdquo;), amount (e.g. &ldquo;240&rdquo;), or title.
+                Try searching by a member&apos;s name, amount, or title.
               </p>
             </div>
             <button
               onClick={handleClearAllFilters}
-              className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors"
+              className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
             >
               Clear All Search Filters
             </button>

@@ -26,6 +26,7 @@ import {
 import { Expense, SplitType, User, Group, ItemizedReceiptItem } from '../models/types.ts';
 import { calculateSplits } from '../engines/splitCalculator.ts';
 import { SUPPORTED_CURRENCIES, formatCurrency, roundCurrency } from '../engines/currency.ts';
+import { UserAvatar } from './UserAvatar.tsx';
 
 interface AddExpenseModalProps {
   isOpen: boolean;
@@ -35,6 +36,7 @@ interface AddExpenseModalProps {
   users: User[];
   defaultCurrency: string;
   onSaveExpense: (expense: Expense) => void;
+  onCreateGroupRequest?: () => void;
 }
 
 export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
@@ -45,10 +47,19 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
   users,
   defaultCurrency,
   onSaveExpense,
+  onCreateGroupRequest,
 }) => {
   const [selectedGroupId, setSelectedGroupId] = useState<string>(
     activeGroupId || groups[0]?.id || ''
   );
+
+  React.useEffect(() => {
+    if (activeGroupId && groups.some((g) => g.id === activeGroupId)) {
+      setSelectedGroupId(activeGroupId);
+    } else if (groups.length > 0 && (!selectedGroupId || !groups.some((g) => g.id === selectedGroupId))) {
+      setSelectedGroupId(groups[0].id);
+    }
+  }, [activeGroupId, groups, selectedGroupId]);
 
   const activeGroup = useMemo(() => {
     return groups.find((g) => g.id === selectedGroupId) || groups[0];
@@ -205,6 +216,49 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
     onClose();
   };
 
+  if (!isOpen) return null;
+
+  if (groups.length === 0) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-in fade-in">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md p-6 text-center space-y-4 shadow-2xl">
+          <div className="w-14 h-14 rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center mx-auto text-2xl shadow-xs">
+            <Users className="w-7 h-7" />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">
+              Create a Group First
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
+              Every expense belongs to a group so members can split costs and simplify debts. Please create a group before recording expenses.
+            </p>
+          </div>
+          <div className="pt-2 flex justify-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+            {onCreateGroupRequest && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onCreateGroupRequest();
+                }}
+                className="px-5 py-2 text-xs font-bold rounded-xl bg-teal-600 hover:bg-teal-700 text-white shadow-md transition-all cursor-pointer"
+              >
+                + Create Group
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-xs animate-in fade-in duration-200">
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-2xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden transition-colors">
@@ -218,7 +272,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
               <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 Add New Expense
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-700 dark:text-teal-400 font-semibold">
-                  EqualPay Engine
+                  Pay Manager Engine
                 </span>
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -489,9 +543,9 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                                 : 'bg-slate-100 dark:bg-slate-800 border-transparent text-slate-400 opacity-60 hover:opacity-100'
                             }`}
                           >
-                            <img
+                            <UserAvatar
                               src={m.avatarUrl}
-                              alt={m.name}
+                              name={m.name}
                               className="w-3.5 h-3.5 rounded-full object-cover"
                             />
                             <span>{m.name.split(' ')[0]}</span>
@@ -534,9 +588,9 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                           onChange={() => toggleUser(u.id)}
                           className="rounded border-slate-300 dark:border-slate-700 text-teal-600 focus:ring-teal-500 dark:bg-slate-950"
                         />
-                        <img
+                        <UserAvatar
                           src={u.avatarUrl}
-                          alt={u.name}
+                          name={u.name}
                           className="w-6 h-6 rounded-full object-cover border border-slate-200 dark:border-slate-700"
                         />
                         <span className="text-xs text-slate-900 dark:text-white font-medium">

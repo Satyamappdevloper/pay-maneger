@@ -1,6 +1,6 @@
 {
-  "name": "EqualPay - Smart Debt & Group Expense Manager",
-  "description": "Production-grade core data architecture, multi-currency conversion, graph debt simplification engine, and offline-first sync queue for EqualPay.",
+  "name": "Pay Manager - Smart Debt & Group Expense Manager",
+  "description": "Production-grade core data architecture, multi-currency conversion, graph debt simplification engine, and offline-first sync queue for Pay Manager.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

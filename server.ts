@@ -13,6 +13,7 @@ import { fileURLToPath } from 'url';
 import { apiRouter } from './src/server/routes.ts';
 
 dotenv.config();
+process.env.DISABLE_HMR = 'true';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -48,12 +49,14 @@ async function startServer() {
         middlewareMode: true,
         host: '0.0.0.0',
         port: PORT,
+        hmr: false,
+        watch: null,
       },
       appType: 'spa',
     });
 
     app.use(vite.middlewares);
-    console.log(`[EqualPay] Vite middleware attached for live client rendering.`);
+    console.log(`[Pay Manager] Vite middleware attached for live client rendering.`);
   } else {
     // Production: Serve static assets from dist
     const distPath = path.resolve(__dirname, 'dist');
@@ -66,7 +69,7 @@ async function startServer() {
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`====================================================`);
-    console.log(`🚀 EqualPay Full-Stack Server Running on Port ${PORT}`);
+    console.log(`🚀 Pay Manager Full-Stack Server Running on Port ${PORT}`);
     console.log(`📡 API Endpoints: http://0.0.0.0:${PORT}/api/v1`);
     console.log(`✨ Environment: ${isProd ? 'Production' : 'Development'}`);
     console.log(`====================================================`);

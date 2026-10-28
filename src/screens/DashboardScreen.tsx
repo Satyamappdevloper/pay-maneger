@@ -24,17 +24,20 @@ import {
 import { useEqualPay } from '../context/EqualPayContext.tsx';
 import { formatCurrency, convertCurrency, OFFLINE_FALLBACK_RATES } from '../engines/currency.ts';
 import { Expense } from '../models/types.ts';
+import { GoogleAdBanner } from '../components/GoogleAdBanner.tsx';
 
 interface DashboardScreenProps {
   onOpenAddExpense: () => void;
   onOpenSettleUp: () => void;
   onSelectGroup: (groupId: string) => void;
+  onOpenCreateGroup?: () => void;
 }
 
 export const DashboardScreen: React.FC<DashboardScreenProps> = ({
   onOpenAddExpense,
   onOpenSettleUp,
   onSelectGroup,
+  onOpenCreateGroup,
 }) => {
   const {
     currentUser,
@@ -143,7 +146,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
 
             <a
               href={`https://wa.me/?text=${encodeURIComponent(
-                `Hi friends! Friendly settlement reminder from ${currentUser.name} on EqualPay: Please review and settle balances here: https://equalpay.dev/settle?to=${currentUser.id}`
+                `Hi friends! Friendly settlement reminder from ${currentUser.name} on Pay Manager: Please review and settle balances here: https://paymanager.app/settle?to=${currentUser.id}`
               )}`}
               target="_blank"
               rel="noreferrer"
@@ -168,83 +171,114 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
               Overview of group spends and your personal share
             </p>
           </div>
+          {groups.length > 0 && onOpenCreateGroup && (
+            <button
+              onClick={onOpenCreateGroup}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-xl transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" /> New Group
+            </button>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {groups.map((group) => {
-            const groupExpenses = expenses.filter((e) => e.groupId === group.id);
-            const totalGroupSpend = groupExpenses.reduce((sum, e) => {
-              return (
-                sum +
-                convertCurrency(
-                  e.totalAmount,
-                  e.currency,
-                  globalCurrency,
-                  OFFLINE_FALLBACK_RATES
-                )
-              );
-            }, 0);
-
-            const userGroupBal = groupBalancesMap[group.id] || 0;
-            const isGroupCreditor = userGroupBal > 0.005;
-            const isGroupDebtor = userGroupBal < -0.005;
-
-            return (
-              <div
-                key={group.id}
-                onClick={() => onSelectGroup(group.id)}
-                className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-teal-500/50 dark:hover:border-teal-500/50 rounded-2xl p-4 shadow-xs hover:shadow-md transition-all flex flex-col justify-between"
+        {groups.length === 0 ? (
+          <div className="bg-white dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-8 sm:p-10 text-center transition-colors">
+            <div className="w-14 h-14 rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center mx-auto mb-3 text-2xl shadow-xs">
+              <Users className="w-7 h-7" />
+            </div>
+            <h4 className="text-base font-bold text-slate-900 dark:text-white">
+              No active groups yet
+            </h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 max-w-md mx-auto leading-relaxed">
+              Pay Manager organizes expenses by group. Create your first group for roommates, an upcoming road trip, event, or friends to start adding expenses.
+            </p>
+            <div className="mt-5">
+              <button
+                onClick={onOpenCreateGroup}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs shadow-md shadow-teal-600/20 active:scale-95 transition-all cursor-pointer"
               >
-                <div>
-                  <div className="flex items-center justify-between mb-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xl shadow-xs">
-                      {group.avatarUrl || '📁'}
-                    </div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                      {group.category}
-                    </span>
-                  </div>
+                <Plus className="w-4 h-4" />
+                <span>Create Your First Group</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {groups.map((group) => {
+              const groupExpenses = expenses.filter((e) => e.groupId === group.id);
+              const totalGroupSpend = groupExpenses.reduce((sum, e) => {
+                return (
+                  sum +
+                  convertCurrency(
+                    e.totalAmount,
+                    e.currency,
+                    globalCurrency,
+                    OFFLINE_FALLBACK_RATES
+                  )
+                );
+              }, 0);
 
-                  <h4 className="text-sm font-bold text-slate-900 dark:text-white line-clamp-1 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
-                    {group.name}
-                  </h4>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
-                    {group.members.length} members • {groupExpenses.length} expenses
-                  </p>
-                </div>
+              const userGroupBal = groupBalancesMap[group.id] || 0;
+              const isGroupCreditor = userGroupBal > 0.005;
+              const isGroupDebtor = userGroupBal < -0.005;
 
-                <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+              return (
+                <div
+                  key={group.id}
+                  onClick={() => onSelectGroup(group.id)}
+                  className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-teal-500/50 dark:hover:border-teal-500/50 rounded-2xl p-4 shadow-xs hover:shadow-md transition-all flex flex-col justify-between"
+                >
                   <div>
-                    <div className="text-[10px] text-slate-400 uppercase font-semibold">
-                      Your Balance
+                    <div className="flex items-center justify-between mb-2.5">
+                      <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xl shadow-xs">
+                        {group.avatarUrl || '📁'}
+                      </div>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                        {group.category}
+                      </span>
                     </div>
-                    <div
-                      className={`text-xs font-bold font-mono ${
-                        isGroupCreditor
-                          ? 'text-green-600 dark:text-green-400'
-                          : isGroupDebtor
-                          ? 'text-red-600 dark:text-red-400'
-                          : 'text-slate-500'
-                      }`}
-                    >
-                      {isGroupCreditor ? '+' : ''}
-                      {formatCurrency(userGroupBal, globalCurrency)}
-                    </div>
+
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-white line-clamp-1 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
+                      {group.name}
+                    </h4>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
+                      {group.members.length} members • {groupExpenses.length} expenses
+                    </p>
                   </div>
 
-                  <div className="text-right">
-                    <div className="text-[10px] text-slate-400 uppercase font-semibold">
-                      Total Spend
+                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+                    <div>
+                      <div className="text-[10px] text-slate-400 uppercase font-semibold">
+                        Your Balance
+                      </div>
+                      <div
+                        className={`text-xs font-bold font-mono ${
+                          isGroupCreditor
+                            ? 'text-green-600 dark:text-green-400'
+                            : isGroupDebtor
+                            ? 'text-red-600 dark:text-red-400'
+                            : 'text-slate-500'
+                        }`}
+                      >
+                        {isGroupCreditor ? '+' : ''}
+                        {formatCurrency(userGroupBal, globalCurrency)}
+                      </div>
                     </div>
-                    <div className="text-xs font-bold font-mono text-slate-900 dark:text-white">
-                      {formatCurrency(totalGroupSpend, globalCurrency)}
+
+                    <div className="text-right">
+                      <div className="text-[10px] text-slate-400 uppercase font-semibold">
+                        Total Spend
+                      </div>
+                      <div className="text-xs font-bold font-mono text-slate-900 dark:text-white">
+                        {formatCurrency(totalGroupSpend, globalCurrency)}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* 3. Recent Activity Feed */}
@@ -266,8 +300,26 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
 
         <div className="space-y-2.5">
           {recentExpenses.length === 0 ? (
-            <div className="py-12 text-center text-xs text-slate-400">
-              No recent expenses recorded yet.
+            <div className="py-12 text-center space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
+                <Receipt className="w-6 h-6 opacity-60" />
+              </div>
+              <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                No recent expenses recorded yet
+              </h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+                Once expenses are added, your live activity timeline and individual share breakdowns will appear here.
+              </p>
+              {groups.length > 0 && (
+                <div className="pt-1">
+                  <button
+                    onClick={onOpenAddExpense}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors"
+                  >
+                    <Plus className="w-4 h-4" /> Add Expense
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             recentExpenses.map((expense) => {
@@ -276,7 +328,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
                   .flatMap((g) => g.members)
                   .find((u) => u.id === expense.paidByUserId) || {
                   name: expense.paidByUserId,
-                  avatarUrl: '',
+                  avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
                 };
 
               const userSplit = expense.splits.find((s) => s.userId === currentUser.id);
@@ -345,6 +397,9 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
           )}
         </div>
       </div>
+
+      {/* Google Ads Placement */}
+      <GoogleAdBanner />
     </div>
   );
 };

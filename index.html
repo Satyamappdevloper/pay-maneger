@@ -3,12 +3,35 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>EqualPay - Smart Debt & Group Expense Manager</title>
-    <meta name="description" content="Production-grade core data architecture, multi-currency conversion, graph debt simplification engine, and offline-first sync queue for EqualPay." />
-    <meta property="og:title" content="EqualPay - Smart Debt & Group Expense Manager" />
-    <meta property="og:description" content="Production-grade core data architecture, multi-currency conversion, graph debt simplification engine, and offline-first sync queue for EqualPay." />
+    <script>
+      // Gracefully suppress benign WebSocket and HMR client transport errors in iframe environment
+      window.addEventListener('error', function(e) {
+        var msg = e && (e.message || '');
+        var file = (e && e.filename) || '';
+        if (msg.includes('WebSocket') || msg.includes('createWebSocketModuleRunnerTransport') || file.includes('@vite/client')) {
+          e.stopImmediatePropagation();
+          e.preventDefault();
+        }
+      }, true);
+      window.addEventListener('unhandledrejection', function(e) {
+        var reason = e && (e.reason && (e.reason.message || String(e.reason))) || '';
+        if (reason.includes('WebSocket') || reason.includes('createWebSocketModuleRunnerTransport') || reason.includes('failed to connect')) {
+          e.stopImmediatePropagation();
+          e.preventDefault();
+        }
+      }, true);
+    </script>
+    <title>Pay Manager - Smart Debt & Group Expense Manager</title>
+    <meta name="description" content="Production-grade core data architecture, multi-currency conversion, graph debt simplification engine, and offline-first sync queue for Pay Manager." />
+    <meta property="og:title" content="Pay Manager - Smart Debt & Group Expense Manager" />
+    <meta property="og:description" content="Production-grade core data architecture, multi-currency conversion, graph debt simplification engine, and offline-first sync queue for Pay Manager." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- GOOGLE ADSENSE ACTIVATION:
+      To enable live Google AdSense ads, uncomment the script tag below and insert your Publisher ID (ca-pub-XXXXXXXXXXXXXXXX):
+      <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
+    -->
   </head>
   <body>
     <div id="root"></div>

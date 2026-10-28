@@ -13,7 +13,7 @@ import { convertCurrency, OFFLINE_FALLBACK_RATES } from '../engines/currency.ts'
 import { calculateNetBalances, simplifyDebts } from '../engines/debtSimplifier.ts';
 import { syncQueueInstance } from '../storage/offlineSyncQueue.ts';
 
-export type NavigationTab = 'dashboard' | 'groups' | 'activity' | 'analytics' | 'engines';
+export type NavigationTab = 'dashboard' | 'groups' | 'activity' | 'analytics' | 'terms';
 
 interface ToastMessage {
   id: string;
@@ -61,6 +61,7 @@ interface EqualPayContextValue {
   createGroup: (group: Omit<Group, 'id' | 'createdAt'>) => void;
   addMemberToGroup: (groupId: string, user: User) => void;
   remindAllDebtors: () => void;
+  updateProfile: (updated: Partial<User>) => void;
   toasts: ToastMessage[];
   showToast: (msg: string, type?: 'success' | 'info' | 'warning') => void;
   dismissToast: (id: string) => void;
@@ -98,15 +99,116 @@ export const EqualPayProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [activeTab, setActiveTab] = useState<NavigationTab>('dashboard');
 
   // Active identity & currency
-  const [currentUser, setCurrentUser] = useState<User>(MOCK_USERS[0]);
+  const [currentUser, setCurrentUser] = useState<User>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('paymanager_currentUser_v3') || localStorage.getItem('equalpay_currentUser_v2');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed && parsed.name && !parsed.name.includes('Alex Rivera')) {
+            return parsed;
+          }
+        } catch (e) { /* fallback */ }
+      }
+    }
+    return MOCK_USERS[0];
+  });
   const [globalCurrency, setGlobalCurrency] = useState<string>('USD');
 
-  // Data stores
-  const [users, setUsers] = useState<User[]>(MOCK_USERS);
-  const [groups, setGroups] = useState<Group[]>(MOCK_GROUPS);
-  const [currentGroupId, setCurrentGroupId] = useState<string | null>(MOCK_GROUPS[0].id);
-  const [expenses, setExpenses] = useState<Expense[]>(INITIAL_ALL_EXPENSES);
-  const [settlements, setSettlements] = useState<SettlementRecord[]>(MOCK_SETTLEMENTS);
+  // Data stores with clean local persistence
+  const [users, setUsers] = useState<User[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('paymanager_users_v3') || localStorage.getItem('equalpay_users_v2');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed.map((u) => (u.name && u.name.includes('Alex Rivera') ? MOCK_USERS[0] : u));
+          }
+        } catch (e) { /* fallback */ }
+      }
+    }
+    return MOCK_USERS;
+  });
+
+  const [groups, setGroups] = useState<Group[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('equalpay_groups_v2');
+      if (saved) {
+        try { return JSON.parse(saved); } catch (e) { /* fallback */ }
+      }
+    }
+    return [];
+  });
+
+  const [currentGroupId, setCurrentGroupId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('equalpay_currentGroupId_v2');
+      if (saved) return saved;
+    }
+    return null;
+  });
+
+  const [expenses, setExpenses] = useState<Expense[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('equalpay_expenses_v2');
+      if (saved) {
+        try { return JSON.parse(saved); } catch (e) { /* fallback */ }
+      }
+    }
+    return [];
+  });
+
+  const [settlements, setSettlements] = useState<SettlementRecord[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('equalpay_settlements_v2');
+      if (saved) {
+        try { return JSON.parse(saved); } catch (e) { /* fallback */ }
+      }
+    }
+    return [];
+  });
+
+  // LocalStorage synchronizers
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('equalpay_users_v2', JSON.stringify(users));
+    }
+  }, [users]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('equalpay_groups_v2', JSON.stringify(groups));
+    }
+  }, [groups]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (currentGroupId) {
+        localStorage.setItem('equalpay_currentGroupId_v2', currentGroupId);
+      } else {
+        localStorage.removeItem('equalpay_currentGroupId_v2');
+      }
+    }
+  }, [currentGroupId]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('equalpay_expenses_v2', JSON.stringify(expenses));
+    }
+  }, [expenses]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('equalpay_settlements_v2', JSON.stringify(settlements));
+    }
+  }, [settlements]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('equalpay_currentUser_v2', JSON.stringify(currentUser));
+    }
+  }, [currentUser]);
 
   // Network & Sync state
   const [isOnline, setIsOnline] = useState<boolean>(syncQueueInstance.isOnline());
@@ -199,11 +301,23 @@ export const EqualPayProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const createGroup = (newGroupData: Omit<Group, 'id' | 'createdAt'>) => {
+    const membersWithCurrentUser = newGroupData.members?.some((m) => m.id === currentUser.id)
+      ? newGroupData.members
+      : [currentUser, ...(newGroupData.members || [])];
+
     const newGroup: Group = {
       ...newGroupData,
       id: `group_${Date.now()}`,
+      members: membersWithCurrentUser,
       createdAt: new Date().toISOString(),
     };
+
+    // Ensure all group members are registered in users
+    const missingUsers = membersWithCurrentUser.filter((m) => !users.some((u) => u.id === m.id));
+    if (missingUsers.length > 0) {
+      setUsers((prev) => [...prev, ...missingUsers]);
+    }
+
     setGroups((prev) => [newGroup, ...prev]);
     setCurrentGroupId(newGroup.id);
     showToast(`Group "${newGroup.name}" created!`);
@@ -228,11 +342,35 @@ export const EqualPayProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const remindAllDebtors = () => {
-    const text = `Hi! Friendly settlement reminder from ${currentUser.name} on EqualPay. View and settle balances here: https://equalpay.dev/settle?to=${currentUser.id}`;
+    const text = `Hi! Friendly settlement reminder from ${currentUser.name} on Pay Manager. View and settle balances here: https://paymanager.app/settle?to=${currentUser.id}`;
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
       navigator.clipboard.writeText(text).catch(() => {});
     }
     showToast(`WhatsApp reminder message copied to clipboard! (Free client-side share)`, 'success');
+  };
+
+  const updateProfile = (updated: Partial<User>) => {
+    setCurrentUser((prev) => {
+      const nextUser = { ...prev, ...updated };
+      setUsers((prevUsers) => {
+        const idx = prevUsers.findIndex((u) => u.id === nextUser.id);
+        if (idx >= 0) {
+          const copy = [...prevUsers];
+          copy[idx] = nextUser;
+          return copy;
+        }
+        return [...prevUsers, nextUser];
+      });
+      // Also update any groups containing this member
+      setGroups((prevGroups) =>
+        prevGroups.map((g) => ({
+          ...g,
+          members: g.members.map((m) => (m.id === nextUser.id ? { ...m, ...nextUser } : m)),
+        }))
+      );
+      return nextUser;
+    });
+    showToast('Profile updated successfully!', 'success');
   };
 
   // Compute Current User's Net Balances across all groups in globalCurrency
@@ -302,6 +440,7 @@ export const EqualPayProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         createGroup,
         addMemberToGroup,
         remindAllDebtors,
+        updateProfile,
         toasts,
         showToast,
         dismissToast,

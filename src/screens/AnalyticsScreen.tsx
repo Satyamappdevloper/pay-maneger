@@ -99,14 +99,16 @@ export const AnalyticsScreen: React.FC = () => {
 
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs transition-colors">
           <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-semibold uppercase">Graph Debt Efficiency</span>
+            <span className="text-xs font-semibold uppercase">Graph Debt Status</span>
             <Zap className="w-4 h-4 text-teal-600 dark:text-teal-400" />
           </div>
           <div className="text-2xl font-black font-mono text-teal-600 dark:text-teal-400 mt-2">
-            68% Saved
+            {expenses.length === 0 ? '100% Even' : 'Optimized'}
           </div>
           <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-            Min Cash Flow eliminated redundant transactions
+            {expenses.length === 0
+              ? 'Zero outstanding debt across all groups'
+              : 'Min Cash Flow algorithm eliminates circular debts'}
           </p>
         </div>
       </div>
@@ -125,27 +127,34 @@ export const AnalyticsScreen: React.FC = () => {
           </div>
 
           <div className="space-y-3">
-            {categoryStats.map(([cat, stat]) => {
-              const pct = totalVolume > 0 ? (stat.total / totalVolume) * 100 : 0;
-              return (
-                <div key={cat} className="space-y-1">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-semibold text-slate-700 dark:text-slate-300">
-                      {cat} ({stat.count})
-                    </span>
-                    <span className="font-mono font-bold text-slate-900 dark:text-white">
-                      {formatCurrency(stat.total, globalCurrency)} ({pct.toFixed(1)}%)
-                    </span>
+            {categoryStats.length === 0 ? (
+              <div className="py-10 text-center space-y-2">
+                <PieChart className="w-8 h-8 text-slate-300 dark:text-slate-700 mx-auto opacity-70" />
+                <p className="text-xs text-slate-400">No category expenditures recorded yet.</p>
+              </div>
+            ) : (
+              categoryStats.map(([cat, stat]) => {
+                const pct = totalVolume > 0 ? (stat.total / totalVolume) * 100 : 0;
+                return (
+                  <div key={cat} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-slate-700 dark:text-slate-300">
+                        {cat} ({stat.count})
+                      </span>
+                      <span className="font-mono font-bold text-slate-900 dark:text-white">
+                        {formatCurrency(stat.total, globalCurrency)} ({pct.toFixed(1)}%)
+                      </span>
+                    </div>
+                    <div className="h-2.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-teal-600 dark:bg-teal-400 rounded-full transition-all"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="h-2.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-teal-600 dark:bg-teal-400 rounded-full transition-all"
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </div>
 
@@ -161,25 +170,34 @@ export const AnalyticsScreen: React.FC = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            {currencyStats.map(([curr, count]) => (
-              <div
-                key={curr}
-                className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-between"
-              >
-                <div>
-                  <div className="text-sm font-black text-slate-900 dark:text-white">
-                    {curr}
-                  </div>
-                  <div className="text-[10px] text-slate-500">
-                    {count} {count === 1 ? 'expense' : 'expenses'}
-                  </div>
-                </div>
-                <span className="text-xs font-mono font-bold text-teal-600 dark:text-teal-400">
-                  Rate: {OFFLINE_FALLBACK_RATES[curr] || 1}
-                </span>
+          <div>
+            {currencyStats.length === 0 ? (
+              <div className="py-10 text-center space-y-2">
+                <Globe className="w-8 h-8 text-slate-300 dark:text-slate-700 mx-auto opacity-70" />
+                <p className="text-xs text-slate-400">No multi-currency transactions entered yet.</p>
               </div>
-            ))}
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {currencyStats.map(([curr, count]) => (
+                  <div
+                    key={curr}
+                    className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-between"
+                  >
+                    <div>
+                      <div className="text-sm font-black text-slate-900 dark:text-white">
+                        {curr}
+                      </div>
+                      <div className="text-[10px] text-slate-500">
+                        {count} {count === 1 ? 'expense' : 'expenses'}
+                      </div>
+                    </div>
+                    <span className="text-xs font-mono font-bold text-teal-600 dark:text-teal-400">
+                      Rate: {OFFLINE_FALLBACK_RATES[curr] || 1}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
